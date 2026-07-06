@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSS 플랫폼 화면 스케치 v0.1</title>
+<style>
+  :root{
+    --bg:#F5F7FA; --card:#FFFFFF; --ink:#1C2536; --muted:#61708B; --line:#E3E8F0;
+    --accent:#2B5FC7; --accent-soft:#EAF0FC; --accent-ink:#1E4394;
+    --good:#1F8A5D; --good-bg:#E7F4EE; --warn:#A8730F; --warn-bg:#FBF3E1; --crit:#BF3B2F; --crit-bg:#FBEAE8;
+    --mono:ui-monospace,"SF Mono",Consolas,"Nanum Gothic Coding",monospace;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;margin:0;padding:28px 20px 80px;line-height:1.55}
+  .wrap{max-width:980px;margin:0 auto}
+
+  /* ── 페이지 헤더 ── */
+  .doc-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:6px}
+  .doc-head h1{font-size:21px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .ver{font-size:12px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:2px 9px;border-radius:99px}
+  .doc-sub{color:var(--muted);font-size:13.5px;margin:0 0 18px;max-width:70ch}
+
+  /* ── 탭 ── */
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .tabs button{font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 15px;cursor:pointer}
+  .tabs button:hover{border-color:var(--accent)}
+  .tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .screen{display:none}
+  .screen.on{display:block}
+
+  /* ── 브라우저 프레임 ── */
+  .frame{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(28,37,54,.06)}
+  .chrome{display:flex;align-items:center;gap:10px;background:#EEF1F6;border-bottom:1px solid var(--line);padding:9px 14px}
+  .dots{display:flex;gap:5px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:#C9D2DF;display:block}
+  .url{flex:1;background:#fff;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:11.5px;color:var(--muted);padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .app{padding:22px}
+
+  /* ── 앱 공통 ── */
+  .appbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .appbar .brand{font-weight:800;font-size:15px;letter-spacing:-.01em}
+  .brand em{font-style:normal;color:var(--accent)}
+  .who{font-size:12.5px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:720px){.grid2,.grid3{grid-template-columns:1fr}}
+  h3.sec{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0 0 10px}
+  .num{font-variant-numeric:tabular-nums}
+
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:99px;padding:2px 9px;vertical-align:middle}
+  .pill.shadow{background:var(--warn-bg);color:var(--warn)}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.crit{background:var(--crit-bg);color:var(--crit)}
+  .pill.info{background:var(--accent-soft);color:var(--accent-ink)}
+
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid transparent}
+  .btn:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  .btn.pri{background:var(--accent);color:#fff}
+  .btn.sec{background:#fff;color:var(--accent-ink);border-color:var(--accent)}
+  .btn.ghost{background:#fff;color:var(--muted);border-color:var(--line)}
+  .btn.danger{background:#fff;color:var(--crit);border-color:var(--crit)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-size:12px;color:var(--muted);font-weight:700;text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .tblwrap{overflow-x:auto}
+  code{font-family:var(--mono);font-size:12px;background:#F0F3F8;border-radius:4px;padding:1px 5px}
+
+  /* 주석 뱃지 + 논의 포인트 */
+  .an{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:var(--crit);color:#fff;font-size:11px;font-weight:800;vertical-align:2px;margin-left:4px;font-style:normal}
+  .notes{margin-top:14px;background:#FFFDF6;border:1px solid #EEE2C0;border-radius:var(--r);padding:14px 18px}
+  .notes h4{margin:0 0 8px;font-size:13px;color:var(--warn)}
+  .notes ol{margin:0;padding-left:20px;font-size:13px;color:#4A5468}
+  .notes li{margin-bottom:5px}
+  .notes li::marker{font-weight:700;color:var(--crit)}
+
+  /* 온보딩 */
+  .steps{display:flex;gap:0;margin-bottom:20px;font-size:12.5px}
+  .step{flex:1;text-align:center;color:var(--muted);position:relative;padding-top:26px}
+  .step::before{content:attr(data-n);position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#DCE2EC;color:#fff;font-weight:800;font-size:12px;line-height:22px}
+  .step.done::before{background:var(--good);content:"✓"}
+  .step.now{color:var(--accent-ink);font-weight:700}
+  .step.now::before{background:var(--accent)}
+  .repo-opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:10px}
+  .repo-opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .radio{width:15px;height:15px;border-radius:50%;border:2px solid #B7C1D2;margin-top:3px;flex:none}
+  .repo-opt.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 45%,#fff 50%)}
+  .perm{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);background:#F0F3F8;border-radius:8px;padding:9px 12px;margin-top:12px}
+
+  /* 대시보드 */
+  .score-big{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .score-big small{font-size:17px;color:var(--muted);font-weight:600}
+  .grade{display:inline-block;font-size:22px;font-weight:800;color:var(--accent-ink);background:var(--accent-soft);border-radius:10px;padding:4px 14px;margin-left:8px}
+  .spark{display:flex;align-items:flex-end;gap:5px;height:58px;margin-top:8px}
+  .spark i{flex:1;background:#C9D8F5;border-radius:3px 3px 0 0;display:block}
+  .spark i.hi{background:var(--accent)}
+  .spark-x{display:flex;gap:5px;font-size:10.5px;color:var(--muted);margin-top:4px}
+  .spark-x span{flex:1;text-align:center}
+  .tl{list-style:none;margin:0;padding:0;font-size:13px}
+  .tl li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .tl li:last-child{border-bottom:0}
+  .tl .t{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  /* drill-down */
+  .drill{background:#F7FAFE;border:1px dashed #B9CCEF}
+  .drill td{border-bottom:1px solid #E3ECFA}
+
+  /* 관리자 차트 */
+  .bar-row{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:10px;font-size:13px;margin-bottom:9px}
+  @media (max-width:720px){.bar-row{grid-template-columns:104px 1fr 44px;font-size:12px}}
+  .bar{height:14px;background:#E8EDF5;border-radius:7px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:7px}
+  .banner{display:flex;gap:10px;align-items:flex-start;border-radius:var(--r);padding:11px 14px;font-size:13px;margin-bottom:14px}
+  .banner.warn{background:var(--warn-bg);color:#6B4E10;border:1px solid #EAD9AC}
+  .banner.info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid #C9D8F5}
+
+  /* 프로젝트 탐색·상세 */
+  .plink{text-decoration:underline;text-decoration-style:dotted;cursor:pointer;color:var(--accent-ink)}
+  .filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .chip{font-size:12px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .proj-card{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r);padding:12px 15px;margin-bottom:9px;background:#fff}
+  .proj-card.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .health{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px}
+  .health span{display:inline-flex;gap:5px;align-items:center}
+  .ok{color:var(--good);font-weight:700}
+  .miss{color:var(--warn);font-weight:700}
+
+  @media (prefers-reduced-motion: no-preference){
+    .screen.on{animation:fade .18s ease}
+    @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  }
+  @media print{.tabs{display:none}.screen{display:block!important;page-break-after:always}}
+</style>
+
+<div class="wrap">
+  <div class="doc-head">
+    <h1>AI 에이전트 기반 OSS 교육·협업 플랫폼 — 화면 스케치</h1>
+    <span class="ver">v0.1 · 시연/논의용 목업</span>
+  </div>
+  <p class="doc-sub">실제 서비스가 아니라 사업단·교수 미팅용 스케치입니다. 데이터는 전부 가상이며, PRD의 시나리오 인물(김민지·박 교수·이 주임)과 동일한 설정을 사용했습니다. 데모 기준일은 <strong>2026-12-21</strong>(12/20 장학 선발 스냅샷 직후)입니다. 화면마다 붉은 번호 <i class="an">1</i> 는 아래 "미팅 논의 포인트"와 연결됩니다.</p>
+
+  <div class="tabs" role="tablist" aria-label="화면 선택">
+    <button role="tab" id="tab-s1" aria-controls="s1" aria-selected="true" data-s="s1">① 학생 온보딩</button>
+    <button role="tab" id="tab-s2" aria-controls="s2" aria-selected="false" data-s="s2">② 학생 대시보드</button>
+    <button role="tab" id="tab-s3" aria-controls="s3" aria-selected="false" data-s="s3">③ 점수 상세 (drill-down)</button>
+    <button role="tab" id="tab-s4" aria-controls="s4" aria-selected="false" data-s="s4">④ 교수 코스 관리</button>
+    <button role="tab" id="tab-s5" aria-controls="s5" aria-selected="false" data-s="s5">⑤ 관리자 평가·스냅샷</button>
+    <button role="tab" id="tab-s6" aria-controls="s6" aria-selected="false" data-s="s6">⑥ 프로젝트 탐색·상세</button>
+  </div>
+
+  <!-- ═══════ ① 온보딩 ═══════ -->
+  <section class="screen on" id="s1" role="tabpanel" aria-labelledby="tab-s1">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/onboarding</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">연동 진행 중</span></div>
+
+        <div class="steps">
+          <div class="step done" data-n="1">GitHub 로그인</div>
+          <div class="step now" data-n="2">저장소 연결</div>
+          <div class="step" data-n="3">커밋 이메일 확인</div>
+          <div class="step" data-n="4">학번 인증</div>
+        </div>
+
+        <div class="card" style="max-width:560px;margin:0 auto">
+          <h3 class="sec">어떤 저장소를 연결할까요?</h3>
+          <div class="repo-opt sel">
+            <span class="radio"></span>
+            <div>
+              <strong>모든 저장소 (권장)</strong> <i class="an">1</i><br>
+              <span style="font-size:12.5px;color:var(--muted)">지금 있는 저장소와 앞으로 만들 저장소가 자동으로 연결되어, 활동이 빠짐없이 수집·기록돼요. (점수 산정 범위는 별도 기준을 따릅니다)</span>
+            </div>
+          </div>
+          <div class="repo-opt">
+            <span class="radio"></span>
+            <div>
+              <strong>직접 선택</strong><br>
+              <span style="font-size:12.5px;color:var(--muted)">연결할 저장소를 하나씩 고릅니다. 연결하지 않은 저장소는 점수에도 반영되지 않습니다.</span>
+            </div>
+          </div>
+          <div class="perm">🔒 <span><strong>읽기 전용</strong>으로만 연결됩니다. 플랫폼은 코드를 수정·삭제할 수 없으며, 이 내용은 GitHub 설치 화면에도 그대로 표시됩니다. <i class="an">2</i></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:16px">
+            <button class="btn ghost">이전</button>
+            <button class="btn pri">GitHub에서 설치 계속하기</button>
+          </div>
+        </div>
+
+        <div class="card" style="max-width:560px;margin:12px auto 0;border-style:dashed">
+          <h3 class="sec">다음 단계 미리보기 — 커밋 이메일 확인 <i class="an">3</i></h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 8px">최근 커밋의 작성자 이메일과 GitHub 계정 등록 이메일을 대조합니다. 실습실 공용 PC에서 작업한 커밋이 점수에서 빠지는 것을 막는 단계입니다.</p>
+          <div class="banner warn" style="margin:0">⚠️ <span><code>minji@lab-pc.local</code> 로 작성된 커밋 12건이 계정에 연결되어 있지 않아요. 이 이메일을 GitHub에 등록하면 점수에 반영됩니다. → <strong>등록 방법 보기</strong></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 온보딩</h4>
+      <ol>
+        <li>"모든 저장소"를 기본 권장으로 하되 학생에게 제외권을 준다. <strong>단, 수집 범위 ≠ 점수 산정 범위</strong> — private repo의 점수 포함 여부는 별도 결정(질문지 Q9).</li>
+        <li>읽기 전용(read-only) 명시가 학생 신뢰의 핵심. 개인정보 수집·이용 동의 화면은 이 앞 단계에 별도로 들어간다(Q6 결정에 따라 문구 확정).</li>
+        <li>커밋 이메일 검증을 온보딩 필수 단계로 넣은 이유: 장학금이 걸린 지표에서 귀속 누락은 버그가 아니라 민원이기 때문.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════ ② 학생 대시보드 ═══════ -->
+  <section class="screen" id="s2" role="tabpanel" aria-labelledby="tab-s2">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/me</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">김민지 · 소프트웨어공학과 4학년</span></div>
+
+        <div class="banner warn">🕐 <span><strong>2026-2학기는 검증 기간(shadow mode)입니다.</strong> 아래 점수는 참고용이며 장학 선발에는 기존 방식이 사용됩니다. <i class="an">1</i></span></div>
+
+        <div class="grid3">
+          <div class="card">
+            <h3 class="sec">내 FORCE 점수 <span class="pill shadow">참고용</span></h3>
+            <div class="score-big num">76.5<small> / 100</small><span class="grade">B</span></div>
+            <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">지난달 대비 <strong style="color:var(--good)">+4.2</strong> · <span style="color:var(--accent-ink);text-decoration:underline;cursor:pointer">항목별 근거 보기 →</span></p>
+          </div>
+          <div class="card">
+            <h3 class="sec">최근 6개월 추이 <i class="an">2</i></h3>
+            <div class="spark" role="img" aria-label="월별 점수 추이: 7월부터 12월까지 상승, 12월 76.5점">
+              <i style="height:38%"></i><i style="height:45%"></i><i style="height:42%"></i><i style="height:58%"></i><i style="height:66%"></i><i class="hi" style="height:76%"></i>
+            </div>
+            <div class="spark-x"><span>7월</span><span>8월</span><span>9월</span><span>10월</span><span>11월</span><span>12월</span></div>
+          </div>
+          <div class="card">
+            <h3 class="sec">연동 상태</h3>
+            <p style="font-size:13px;margin:0 0 6px">저장소 <strong class="num">14개</strong> 동기화 중 <span class="pill good">정상</span></p>
+            <p style="font-size:13px;margin:0 0 6px">마지막 수집 <span class="num">오늘 06:12</span></p>
+            <button class="btn ghost" style="margin-top:6px">연동 저장소 관리</button>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:14px">
+          <div class="card">
+            <h3 class="sec">최근 활동</h3>
+            <ul class="tl">
+              <li><span class="t">오늘 01:34</span><span><code class="plink" data-goto="s6" title="프로젝트 상세로 이동">capstone-team3</code> 에 커밋 3건 — "지도 마커 클러스터링"</span></li>
+              <li><span class="t">어제</span><span><code>oss-contrib/parser</code> PR #41 <span class="pill good">merged</span> — 외부 OSS 기여 <i class="an">3</i></span></li>
+              <li><span class="t">12/18</span><span><code>algo-study</code> Issue 답변 1건</span></li>
+              <li><span class="t">12/16</span><span>AI 코드리뷰 수신 — <code>capstone-team3</code> PR #17</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 class="sec">다음 액션 제안</h3>
+            <ul class="tl">
+              <li><span>📄</span><span><strong>포트폴리오 초안 만들기</strong> — 캡스톤 활동이 충분히 쌓였어요</span></li>
+              <li><span>🔍</span><span><strong>AI 리뷰 요청</strong> — 열려 있는 PR 2건이 리뷰를 기다립니다</span></li>
+              <li><span>🌱</span><span><strong>추천 OSS 프로젝트</strong> — 관심 스택(React·지도) 기반 3건 <span class="pill info">새 기능</span></span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 학생 대시보드</h4>
+      <ol>
+        <li>shadow 기간 배너를 항상 노출해 "이 점수로 뽑히는 게 아니다"를 오해 없이 전달(Q7). 전환 후 배너 제거.</li>
+        <li>첫 화면은 절대 점수보다 <strong>성장 추이</strong> 중심 — 신규 진입 학생이 낮은 절대치에 좌절해 이탈하는 것을 막는 설계.</li>
+        <li>외부 OSS 기여(타인 repo에 merge)를 타임라인에서 별도 강조 — FORCE v2 트랙 분리의 씨앗을 UI에 미리 심어둠.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════ ③ 점수 상세 ═══════ -->
+  <section class="screen" id="s3" role="tabpanel" aria-labelledby="tab-s3">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/me/force</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">김민지 · FORCE 점수 상세</span></div>
+
+        <div class="banner info">ℹ️ <span>각 항목을 누르면 <strong>어떤 저장소의 어떤 활동이 몇 점이 됐는지</strong> 근거를 펼쳐볼 수 있습니다. 산식 버전: <code>v1.0 (2026-2학기 고정)</code> <i class="an">1</i></span></div>
+
+        <div class="card">
+          <div class="tblwrap">
+          <table>
+            <thead><tr><th style="width:64px">항목</th><th>내용</th><th style="width:90px">측정값</th><th style="width:80px">환산점수</th><th style="width:110px"></th></tr></thead>
+            <tbody>
+              <tr><td><code>e1</code></td><td>개인 저장소 수</td><td class="num">14개</td><td class="num">4.5</td><td></td></tr>
+              <tr><td><code>e5</code></td><td>받은 Star 수</td><td class="num">23개</td><td class="num">3.0</td><td></td></tr>
+              <tr style="background:#F7FAFE"><td><code>e7</code> ▾</td><td><strong>신규 소스코드 커밋 수</strong> (펼침)</td><td class="num">182건</td><td class="num">8.2</td><td></td></tr>
+              <tr class="drill"><td></td><td colspan="4">
+                <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">근거 활동 (최근순) <i class="an">2</i></div>
+                <div style="font-size:12.5px;line-height:2">
+                  <code>capstone-team3</code> 94건 · 출처: 캡스톤 <span class="pill info">course</span><br>
+                  <code>oss-contrib/parser</code> 31건 · 출처: 외부 OSS <span class="pill good">external</span><br>
+                  <code>algo-study</code> 57건 · 출처: 개인 <span class="pill info">personal</span>
+                </div>
+              </td></tr>
+              <tr><td><code>e13</code></td><td>Issue 질문 수</td><td class="num">6건</td><td class="num">2.1</td><td></td></tr>
+              <tr><td><code>e17</code></td><td>PR 반영(merge) 수</td><td class="num">12건</td><td class="num">6.4</td><td></td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);font-size:12px">… 17개 항목 전체 보기 …</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:14px">
+          <div class="card">
+            <h3 class="sec">활동이 빠져 있나요?</h3>
+            <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">직접 작업했는데 점수에 안 보이는 활동이 있다면 신고해 주세요. 해당 저장소를 자동 재수집하고, 실패 시 관리자가 확인합니다.</p>
+            <button class="btn sec">누락 신고 <i class="an">3</i></button>
+          </div>
+          <div class="card">
+            <h3 class="sec">검토 중인 활동 <i class="an">4</i></h3>
+            <p style="font-size:12.5px;color:var(--muted);margin:0 0 8px"><span class="pill good">없음</span> 현재 검토 대상으로 분류된 활동이 없습니다.</p>
+            <p style="font-size:12px;color:var(--muted);margin:0">활동이 검토 대상으로 분류되면 여기에 사유가 통보되고 <strong>소명 제출</strong> 버튼이 표시됩니다. (예시: 관리자 화면 ⑤의 오세훈 건)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 점수 상세</h4>
+      <ol>
+        <li>산식 버전을 화면에 고정 표기 — "학기 시작 시 산식 고정, 학기 중 소급 변경 금지" 원칙(PRD)의 UI 표현.</li>
+        <li>근거 drill-down에 활동 출처 태그(course/external/personal)가 이미 붙어 있음 — v2 트랙 분리로 갈 때 데이터 구조 변경 없이 확장 가능.</li>
+        <li>누락 신고는 이의제기의 1차 통로. 신고→재수집→재산정 처리 기한(SLA)을 사업단과 합의 필요(Q8).</li>
+        <li>어뷰징 의심 활동은 <strong>자동 감점 없이</strong> 보류+통보+소명 구조. 판정은 위원회 몫(Q11).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════ ④ 교수 코스 ═══════ -->
+  <section class="screen" id="s4" role="tabpanel" aria-labelledby="tab-s4">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/course/capstone-2026-2</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">박○○ 교수 · 캡스톤디자인 (2026-2)</span></div>
+
+        <div class="grid3">
+          <div class="card"><h3 class="sec">수강생</h3><div class="score-big num" style="font-size:32px">42<small>명</small></div></div>
+          <div class="card"><h3 class="sec">플랫폼 연동</h3><div class="score-big num" style="font-size:32px">35<small>명</small></div><p style="font-size:12px;color:var(--muted);margin:6px 0 0">연동률 83%</p></div>
+          <div class="card"><h3 class="sec">미연동 <i class="an">1</i></h3><div class="score-big num" style="font-size:32px;color:var(--crit)">7<small>명</small></div><button class="btn sec" style="margin-top:8px">리마인드 일괄 발송</button></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3 class="sec">팀별 활동 현황 <span class="pill shadow">참고용 — 커밋 수 ≠ 기여도</span> <i class="an">2</i></h3>
+          <div class="tblwrap">
+          <table>
+            <thead><tr><th>팀</th><th>저장소</th><th>최근 2주 활동</th><th>구성원별 커밋</th><th>마감 스냅샷</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>3팀</td><td><code class="plink" data-goto="s6" title="프로젝트 상세로 이동">capstone-team3</code></td>
+                <td><span class="pill good">활발</span> <span class="num">커밋 61 · PR 9</span></td>
+                <td class="num">김민지 34 · 이도현 15 · 박서연 12 <span style="color:var(--muted)">(co-author 반영)</span></td>
+                <td><code>a3f9c21</code> <span style="font-size:11px;color:var(--muted)">과제2 · 11/28 23:59 고정</span> <i class="an">3</i></td>
+              </tr>
+              <tr>
+                <td>5팀</td><td><code>capstone-team5</code></td>
+                <td><span class="pill crit">3주째 활동 없음</span></td>
+                <td class="num">전원 0</td>
+                <td><code>—</code> <span style="font-size:11px;color:var(--muted)">미제출</span></td>
+              </tr>
+              <tr>
+                <td>7팀</td><td><code>capstone-team7</code></td>
+                <td><span class="pill good">활발</span> <span class="num">커밋 44 · PR 6</span></td>
+                <td class="num">최지우 41 · 정하늘 2 · 오세훈 1 <span class="pill shadow">편중</span> <i class="an">4</i></td>
+                <td><code>7b2e0d8</code> <span style="font-size:11px;color:var(--muted)">과제2 · 11/28 23:59 고정</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 교수 코스 관리</h4>
+      <ol>
+        <li>미연동 학생 리마인드를 원클릭으로 — 연동률 90% 목표의 실행 수단. TA에게 이 화면을 어디까지 위임할지 결정 필요(질문지 Q17).</li>
+        <li>"커밋 수 ≠ 기여도" 문구를 표 자체에 상시 부착 — squash 병합 등으로 커밋이 한 명 명의로 잡힐 수 있어, 성적 산출 근거가 아닌 <strong>면담 참고 자료</strong>로 포지셔닝.</li>
+        <li>마감 시각의 커밋 상태(SHA)를 자동 고정 — 마감 후 수정해도 채점 대상은 그대로. "제출=push" 정책(Q16)의 채점 부담 해소 장치.</li>
+        <li>편중 표시는 무임승차 <strong>탐지가 아니라 조기 면담 신호</strong>. 자동으로 성적에 반영되지 않음(PRD 원칙).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════ ⑤ 관리자 ═══════ -->
+  <section class="screen" id="s5" role="tabpanel" aria-labelledby="tab-s5">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/admin</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">이○○ 주임 · SW중심대학사업단</span></div>
+
+        <div class="banner warn">🕐 <span><strong>Shadow mode</strong> — 자동 산출 점수는 참고치입니다. 2026-2학기 선발은 기존 방식과 병행 검증 중.</span></div>
+
+        <div class="grid2">
+          <div class="card">
+            <h3 class="sec">학과별 FORCE 평균 (자동 산출) <i class="an">1</i></h3>
+            <div class="bar-row"><span>소프트웨어공학과</span><span class="bar"><i style="width:68%"></i></span><strong class="num">68.2</strong></div>
+            <div class="bar-row"><span>컴퓨터정보통신공학과</span><span class="bar"><i style="width:61%"></i></span><strong class="num">61.4</strong></div>
+            <div class="bar-row"><span>인공지능학부</span><span class="bar"><i style="width:64%"></i></span><strong class="num">64.0</strong></div>
+            <p style="font-size:12px;color:var(--muted);margin:8px 0 0">평가 대상 352명 중 연동 214명 (커버리지 61% — 설문 시절 29%의 2.1배)</p>
+          </div>
+          <div class="card">
+            <h3 class="sec">평가 실행 <i class="an">2</i></h3>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button class="btn sec">① 전체 동기화 <span style="font-weight:400;color:var(--muted)">— GitHub에서 재수집 · 목표 4시간 이내 (1차 학기 실측 후 확정)</span></button>
+              <button class="btn sec">② 점수 재계산 <span style="font-weight:400;color:var(--muted)">— 저장된 데이터로 산식 재적용 · 수 분</span></button>
+              <button class="btn pri">③ 평가 스냅샷 생성 <span style="font-weight:400">— 기준일 점수를 동결</span></button>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin:10px 0 0">마지막 자동 배치: 오늘 04:00 <span class="pill good">성공</span></p>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:14px">
+          <div class="card">
+            <h3 class="sec">평가 스냅샷 이력 <i class="an">3</i></h3>
+            <div class="tblwrap">
+            <table>
+              <thead><tr><th>기준일</th><th>대상</th><th>산식</th><th>상태</th></tr></thead>
+              <tbody>
+                <tr><td class="num">2026-12-20</td><td class="num">214명</td><td><code>v1.0</code></td><td><span class="pill info">동결 (불변)</span></td></tr>
+                <tr><td class="num">2026-10-15</td><td class="num">198명</td><td><code>v1.0</code></td><td><span class="pill info">동결 (불변)</span> · 리허설</td></tr>
+              </tbody>
+            </table>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin:8px 0 0">스냅샷은 생성 후 수정·삭제할 수 없습니다. 이후 학생이 저장소를 삭제해도 산정 근거는 보존됩니다.</p>
+          </div>
+          <div class="card">
+            <h3 class="sec">처리 대기 큐 <i class="an">4</i></h3>
+            <ul class="tl">
+              <li><span class="pill info">누락 신고</span><span>정하늘 (컴정통) — <code>lab-pc</code> 이메일 커밋 재수집 요청 · 12/16</span></li>
+              <li><span class="pill info">누락 신고</span><span>김유진 (SW공학) — org 승인 대기 repo · 12/15</span></li>
+              <li><span class="pill crit">어뷰징 플래그</span><span>오세훈 (인공지능) — <code>test-repo-7</code> 하루 커밋 200건 · 소명 접수됨 → <strong>위원회 회부</strong></span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:10px">
+            <h3 class="sec" style="margin:0">학생 개별 관리 <i class="an">5</i></h3>
+            <span style="font-size:12px;color:var(--muted)">🔍 이름·학번 검색 <code style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 40px 2px 8px">김민지</code> · 개인 화면 열람은 접근 로그에 기록됩니다</span>
+          </div>
+          <div class="tblwrap">
+          <table>
+            <thead><tr><th>학생</th><th>학과</th><th>연동</th><th class="num">FORCE (v1)</th><th>최근 스냅샷</th><th>이력</th><th></th></tr></thead>
+            <tbody>
+              <tr style="background:var(--accent-soft)">
+                <td><strong>김민지</strong></td><td>SW공학 4</td><td><span class="pill good">정상</span> repo 14 · 오늘 06:12</td><td class="num">76.5 (B)</td><td class="num">12/20 포함</td><td>신고 0 · 플래그 0</td><td><span class="plink">상세 열기</span></td>
+              </tr>
+              <tr>
+                <td>정하늘</td><td>컴정통 3</td><td><span class="pill shadow">이메일 미등록 12건</span></td><td class="num">54.1 (C)</td><td class="num">12/20 포함</td><td>신고 1 (처리 중)</td><td><span class="plink">상세 열기</span></td>
+              </tr>
+              <tr>
+                <td>오세훈</td><td>인공지능 2</td><td><span class="pill good">정상</span></td><td class="num">보류</td><td class="num">12/20 제외</td><td>플래그 1 (위원회)</td><td><span class="plink">상세 열기</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:8px 0 0">"상세 열기"는 해당 학생의 항목별 산출 근거를 <strong>학생 본인이 보는 점수 상세 화면과 동일한 구조</strong>로 보여줍니다 — 이의제기 시 같은 화면을 놓고 대화하기 위함입니다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 관리자 평가·스냅샷</h4>
+      <ol>
+        <li>학생별 원자료가 아닌 <strong>집계 중심</strong> 화면 — 원자료 열람은 심사 목적에 한정하고 접근 로그를 남기는 원칙(PRD 접근 매트릭스).</li>
+        <li>평가 실행 3버튼: 장학 선발 전날 ① 동기화 → 당일 아침 ② 재계산 → ③ 스냅샷 동결 순서. 가중치만 바뀌면 ②만 누르면 됨(룰엔진).</li>
+        <li>스냅샷 불변 레코드가 이의제기·행정감사 방어의 핵심 — "산정 당시 데이터"를 언제든 재현.</li>
+        <li>플래그 건은 시스템이 판정하지 않고 위원회로 회부 — 자동 감점 없음 원칙의 UI 표현(Q11).</li>
+        <li>학생 개별 관리: 교직원이 학생 한 명 단위로 연동 상태·점수 근거·이력을 확인 — 단 학생 본인 화면과 동일한 근거 구조를 보여주고, 개인 화면 열람은 접근 로그에 남긴다(열람 로그의 학생 공개 여부는 Q23).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════ ⑥ 프로젝트 탐색·상세 ═══════ -->
+  <section class="screen" id="s6" role="tabpanel" aria-labelledby="tab-s6">
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">jnu-oss.example.ac.kr/projects/capstone-team3</span></div>
+      <div class="app">
+        <div class="appbar"><span class="brand">JNU <em>OSS</em> 플랫폼</span><span class="who">프로젝트 탐색 · 교내 산출물</span></div>
+
+        <div class="card" style="margin-bottom:14px">
+          <h3 class="sec">프로젝트 탐색 <i class="an">1</i></h3>
+          <div class="filter-chips">
+            <span class="chip on">전체</span><span class="chip">캡스톤</span><span class="chip">수업</span><span class="chip">개인</span><span class="chip">경진대회</span><span class="chip">외부 OSS 기여</span><span class="chip">학과: 전체 ▾</span>
+          </div>
+          <div class="proj-card sel">
+            <div>
+              <strong>캠퍼스 셔틀 알리미</strong> <code>capstone-team3</code> <span class="pill info">캡스톤</span> <span class="pill good">교내 공개</span><br>
+              <span style="font-size:12.5px;color:var(--muted)">실시간 셔틀 위치·혼잡도 안내 웹앱 · 김민지 외 2명 · 커밋 94 · ★ 12</span>
+            </div>
+            <span style="font-size:12px;color:var(--accent-ink);white-space:nowrap">보는 중</span>
+          </div>
+          <div class="proj-card">
+            <div>
+              <strong>parser 성능 개선 기여</strong> <code>oss-contrib/parser</code> <span class="pill good">외부 OSS</span> <span class="pill good">전체 공개</span><br>
+              <span style="font-size:12.5px;color:var(--muted)">외부 오픈소스에 merge된 PR 3건 묶음 · 김민지 · ★ 2.1k(원 프로젝트)</span>
+            </div>
+          </div>
+          <div class="proj-card">
+            <div>
+              <strong>2026 데이터경진대회 — 교통량 예측</strong> <code>traffic-contest</code> <span class="pill info">경진대회</span> <span class="pill shadow">비공개(본인·평가자만)</span> <i class="an">3</i><br>
+              <span style="font-size:12.5px;color:var(--muted)">최지우 외 1명 · 커밋 41 · 수상 실적 아티팩트 1건 연결됨</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:10px">
+            <div>
+              <strong style="font-size:16px">캠퍼스 셔틀 알리미</strong> <code>capstone-team3</code> <span class="pill info">캡스톤디자인 (2026-2)</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted)">GitHub 원본 보기 ↗ · 과제2 채점 기준: <code>a3f9c21</code> (11/28 23:59 고정) <i class="an">4</i></div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <h3 class="sec">README 요약 (AI 생성)</h3>
+              <p style="font-size:13px;margin:0 0 12px;color:#3A4458">교내 셔틀버스의 실시간 위치와 혼잡도를 보여주는 웹앱. React + FastAPI, GPS 데이터는 학교 API 연동. 팀 3명이 프론트/백엔드/데이터를 나눠 개발.</p>
+              <h3 class="sec">저장소 건강 체크 <i class="an">2</i></h3>
+              <div class="health" style="margin-bottom:12px">
+                <span><span class="ok">✓</span> README</span>
+                <span><span class="ok">✓</span> Description</span>
+                <span><span class="miss">△</span> License 없음 — 추가 권장</span>
+                <span><span class="ok">✓</span> 최근 30일 활동</span>
+              </div>
+              <h3 class="sec">최근 AI 리뷰</h3>
+              <p style="font-size:12.5px;color:var(--muted);margin:0">PR #17 "지도 마커 클러스터링" — 성능 개선 제안 2건, 보안 이슈 0건 <span class="pill info">학습 피드백</span></p>
+            </div>
+            <div>
+              <h3 class="sec">기여자별 활동</h3>
+              <div class="bar-row"><span>김민지</span><span class="bar"><i style="width:56%"></i></span><strong class="num">34</strong></div>
+              <div class="bar-row"><span>이도현</span><span class="bar"><i style="width:25%"></i></span><strong class="num">15</strong></div>
+              <div class="bar-row"><span>박서연</span><span class="bar"><i style="width:20%"></i></span><strong class="num">12</strong></div>
+              <p style="font-size:11.5px;color:var(--muted);margin:4px 0 12px">커밋 수 기준 · co-author 반영 · 커밋 수 ≠ 기여도</p>
+              <h3 class="sec">연결된 아티팩트</h3>
+              <ul class="tl">
+                <li><span>📄</span><span>최종 보고서 (PDF 링크) <span class="pill good">검증 완료</span></span></li>
+                <li><span>🎬</span><span>시연 영상 (외부 링크) <span class="pill good">검증 완료</span></span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <h4>미팅 논의 포인트 — 프로젝트 탐색·상세 (SOSD 벤치마킹 반영)</h4>
+      <ol>
+        <li>교내 산출물을 한곳에서 탐색 — 교수 요구("산출물이 흩어져 관리 안 됨")의 정면 해결이자, 교수·관리자 화면의 repo 이름을 클릭하면 이 상세로 들어오는 동선. 성균관대 SOSD의 프로젝트 전시 구조를 우리 출처 태그 체계에 맞게 변형.</li>
+        <li>저장소 건강 체크(README·Description·License)는 SOSD "리포지토리 가이드라인" 차용 — FORCE e9(README 커밋)·AI 리뷰(F8)와 자연 연결되고, 학생에게 "뭘 고치면 되는지"를 알려주는 형성 피드백.</li>
+        <li>공개 범위는 프로젝트 단위 3단계(전체 공개/교내 공개/비공개-평가자만) 제안 — 학생 간 공개는 SOSD처럼 본인 설정권. 기본값과 정책은 사업단 결정 필요(질문지 신규 문항).</li>
+        <li>평가자가 들어와서 보는 화면이므로 감사 요소 내장: 채점 기준 SHA 고정 표시, 평가 목적 열람은 접근 로그 기록.</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+  var tabs = document.querySelectorAll('.tabs button');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabs.forEach(function(b){ b.setAttribute('aria-selected','false'); });
+      btn.setAttribute('aria-selected','true');
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('on'); });
+      document.getElementById(btn.dataset.s).classList.add('on');
+    });
+  });
+  // 온보딩 라디오 옵션 — 시연 중 클릭 반응
+  var opts = document.querySelectorAll('.repo-opt');
+  opts.forEach(function(opt){
+    opt.addEventListener('click', function(){
+      opts.forEach(function(o){ o.classList.remove('sel'); });
+      opt.classList.add('sel');
+    });
+  });
+  // repo 이름 클릭 → 프로젝트 상세 탭으로 이동 ("직접 들어가서 보기" 동선)
+  document.querySelectorAll('[data-goto]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var target = el.dataset.goto;
+      var btn = document.querySelector('.tabs button[data-s="' + target + '"]');
+      if (btn) { btn.click(); window.scrollTo({top: 0}); }
+    });
+  });
+</script>
+
+</html>
